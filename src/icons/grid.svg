@@ -1,0 +1,19 @@
+ <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Top-left square */}
+      <rect x="3.75" y="3.75" width="6.5" height="6.5" rx="1.25" stroke="currentColor" strokeWidth="1" />
+
+      {/* Top-right square */}
+      <rect x="13.75" y="3.75" width="6.5" height="6.5" rx="1.25" stroke="currentColor" strokeWidth="1" />
+
+      {/* Bottom-left square */}
+      <rect x="3.75" y="13.75" width="6.5" height="6.5" rx="1.25" stroke="currentColor" strokeWidth="1" />
+
+      {/* Bottom-right square */}
+      <rect x="13.75" y="13.75" width="6.5" height="6.5" rx="1.25" stroke="currentColor" strokeWidth="1" />
+    </svg>
