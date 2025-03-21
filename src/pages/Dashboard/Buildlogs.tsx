@@ -8,6 +8,12 @@ interface PipelineDetail {
   material: string;
 }
 
+interface Assignment {
+  projectId: string;
+  zoneId?: string;
+}
+
+
 interface BuildLog {
   _id: string;
   projectId: string;
@@ -82,78 +88,76 @@ export default function BuildLogs() {
       console.error("Project ID is undefined. Skipping fetch.");
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       let endpoint = "";
-      const assignedZones: string[] = [];
+      let method: "GET" | "POST" = "GET";
+      let body: string | null = null;
+  
+      let assignedZones: string[] = [];
+  
       if (user?.role === "admin") {
-        // ✅ Fetch all logs for the entire project
         endpoint = `http://localhost:3000/build-logs/project/${projectId}`;
       } else {
-        // ✅ Fetch assigned zones for the user
-        const assignmentResponse = await fetch(
+        const assignmentRes = await fetch(
           `http://localhost:3000/assignments/user/${user?._id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+  
+        if (!assignmentRes.ok) throw new Error("Failed to fetch assignments");
+        const assignments: Assignment[] = await assignmentRes.json();
 
-        if (!assignmentResponse.ok)
-          throw new Error("Failed to fetch assignments");
-
-        const assignments: { projectId: string; zoneId?: string }[] =
-          await assignmentResponse.json(); // ✅ Explicitly typed
-
-        // ✅ Declare assignedZones before using it
-        const assignedZones: string[] = assignments
-          .filter((a) => a.projectId === projectId && a.zoneId) // ✅ Explicitly check for `zoneId`
-          .map((a) => a.zoneId as string); // ✅ Ensure TypeScript knows it's a string
-
+  
+        assignedZones = assignments
+          .filter((a) => a.projectId === projectId && a.zoneId)
+          .map((a) => a.zoneId as string);
+  
         if (assignedZones.length === 0) {
-          // ✅ No zone-level access, fetch all project logs
           endpoint = `http://localhost:3000/build-logs/project/${projectId}`;
         } else if (assignedZones.length === 1) {
-          // ✅ Single zone access, fetch logs for that zone
           endpoint = `http://localhost:3000/build-logs/zone/${assignedZones[0]}`;
         } else {
-          // ✅ Multiple zone access, fetch logs for all assigned zones
           endpoint = `http://localhost:3000/build-logs/multi-zone`;
+          method = "POST";
+          body = JSON.stringify({ zoneIds: assignedZones });
         }
       }
-
+  
       const response = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` },
-        method: assignedZones.length > 1 ? "POST" : "GET", // ✅ Use POST for multiple zones
-        body:
-          assignedZones.length > 1
-            ? JSON.stringify({ zoneIds: assignedZones })
-            : null,
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(method === "POST" && { "Content-Type": "application/json" }),
+        },
+        body,
       });
-
+  
       if (!response.ok) throw new Error("Failed to fetch logs");
-
+  
       const data = await response.json();
-
-      if (!Array.isArray(data))
-        throw new Error("Invalid build logs data format");
-
+  
+      if (!Array.isArray(data)) throw new Error("Invalid build logs format");
+  
       setBuildLogs(
         data.map((log: BuildLog) => ({
           ...log,
-          pipelineDetails: log.pipelineDetails || [], // Ensure pipelineDetails is always an array
+          pipelineDetails: log.pipelineDetails || [],
         }))
       );
-
-      showAlert("success", `Build logs loaded successfully`);
+  
+      showAlert("success", "Build logs loaded successfully");
     } catch (error) {
       console.error("Error fetching build logs:", error);
-      showAlert("error", `Failed to load build logs. Please try again.`);
+      showAlert("error", "Failed to load build logs. Please try again.");
     } finally {
       setLoading(false);
     }
   }, [projectId, token, user?._id, user?.role]);
+  
 
   /** ✅ Validate form */
   const validateForm = () => {
